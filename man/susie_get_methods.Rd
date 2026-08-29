@@ -142,7 +142,12 @@ fixed) residual variance parameter.
 prior variance parameters.
 
 \code{susie_get_posterior_mean} returns the posterior mean for the
-regression coefficients of the fitted susie model.
+regression coefficients of the fitted susie model. Note this is not
+interchangeable with \code{coef}: \code{coef} sums over all \code{L}
+single-effect rows and prepends an intercept, whereas
+\code{susie_get_posterior_mean} first drops effects with estimated prior
+variance \eqn{\le} \code{prior_tol}. The two agree on a converged fit and
+can differ otherwise.
 
 \code{susie_get_posterior_sd} returns the posterior standard
 deviation for coefficients of the fitted susie model.

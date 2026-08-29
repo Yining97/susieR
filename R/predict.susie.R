@@ -18,16 +18,34 @@
 #'
 coef.susie <- function(object, ...) {
   s <- object
+
+  # Assume unit scale when X_column_scale_factors is absent (susie_rss() /
+  # SER-fallback fits), else the divide below yields numeric(0).
+  scale <- assume_unit_scale(s$X_column_scale_factors)
+
   # Compute mappable effects
-  mappable_coef <- colSums(s$alpha * s$mu) / s$X_column_scale_factors
+  mappable_coef <- colSums(s$alpha * s$mu) / scale
 
   if (!is.null(s$theta)) {
-    total_coef <- mappable_coef + s$theta / s$X_column_scale_factors
+    total_coef <- mappable_coef + s$theta / scale
   } else {
     total_coef <- mappable_coef
   }
 
-  return(c(s$intercept, total_coef))
+  # The intercept must occupy the first slot, or `c(NULL, total_coef)` silently
+  # returns length p and every coef(fit)[-1] misaligns against names(pip).
+  # susie_rss() fits have no intercept (Zou et al. 2022); return 0 as a
+  # placeholder so the length is p + 1. Use isTRUE(is.na(.)) -- a bare is.na()
+  # errors on the NULL that saved fits carry.
+  if (is.null(s$intercept) || isTRUE(is.na(s$intercept))) {
+    warning_message("Intercept is missing or NA; returning 0. susie_rss() ",
+                    "fits have no intercept (Zou et al. 2022).", style = "hint")
+    icept <- 0
+  } else {
+    icept <- s$intercept
+  }
+
+  return(c(icept, total_coef))
 }
 
 #' @title Predict outcomes or extract coefficients from susie fit.

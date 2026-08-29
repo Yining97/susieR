@@ -28,7 +28,12 @@
 #' prior variance parameters.
 #'
 #' \code{susie_get_posterior_mean} returns the posterior mean for the
-#' regression coefficients of the fitted susie model.
+#' regression coefficients of the fitted susie model. Note this is not
+#' interchangeable with \code{coef}: \code{coef} sums over all \code{L}
+#' single-effect rows and prepends an intercept, whereas
+#' \code{susie_get_posterior_mean} first drops effects with estimated prior
+#' variance \eqn{\le} \code{prior_tol}. The two agree on a converged fit and
+#' can differ otherwise.
 #'
 #' \code{susie_get_posterior_sd} returns the posterior standard
 #' deviation for coefficients of the fitted susie model.
@@ -116,7 +121,7 @@ susie_get_posterior_mean <- function(res, prior_tol = 1e-9) {
   # Now extract relevant rows from alpha matrix.
   if (length(include_idx) > 0) {
     return(colSums((res$alpha * res$mu)[include_idx, , drop = FALSE]) /
-      res$X_column_scale_factors)
+      assume_unit_scale(res$X_column_scale_factors))
   } else {
     return(numeric(ncol(res$mu)))
   }
@@ -138,7 +143,7 @@ susie_get_posterior_sd <- function(res, prior_tol = 1e-9) {
   if (length(include_idx) > 0) {
     return(sqrt(colSums((res$alpha * res$mu2 -
       (res$alpha * res$mu)^2)[include_idx, , drop = FALSE])) /
-      (res$X_column_scale_factors))
+      assume_unit_scale(res$X_column_scale_factors))
   } else {
     return(numeric(ncol(res$mu)))
   }
@@ -200,10 +205,11 @@ susie_get_posterior_samples <- function(susie_fit, num_samples) {
     include_idx <- 1:nrow(susie_fit$alpha)
   }
 
-  posterior_mean <- sweep(susie_fit$mu, 2, susie_fit$X_column_scale_factors, "/")
+  scale <- assume_unit_scale(susie_fit$X_column_scale_factors)
+  posterior_mean <- sweep(susie_fit$mu, 2, scale, "/")
   posterior_sd <- sweep(
     sqrt(susie_fit$mu2 - (susie_fit$mu)^2), 2,
-    susie_fit$X_column_scale_factors, "/"
+    scale, "/"
   )
 
   pip <- susie_fit$alpha
