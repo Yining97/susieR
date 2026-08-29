@@ -60,6 +60,26 @@ warning_message <- function(..., style = c("warning", "hint")) {
   }
 }
 
+# Return `scale` unchanged, or 1 (with a hint) when it is NULL. The posterior
+# extractors divide by X_column_scale_factors; it is a vector of 1s for
+# susie_rss() fits (z-scores) and absent on SER-fallback fits, and dividing by
+# NULL silently yields numeric(0). The guard is unconditional (individual-level
+# fits cannot be told apart from SER-fallback ones reliably), so the hint states
+# the standardized-scale caveat rather than trying to detect the case.
+#' @keywords internal
+assume_unit_scale <- function(scale) {
+  if (is.null(scale)) {
+    warning_message("X_column_scale_factors is missing; assuming 1. This is ",
+                    "expected for susie_rss() fits, which are fit on z-scores. ",
+                    "If this fit came from individual-level data with ",
+                    "standardize = TRUE, the returned values are on the ",
+                    "standardized scale and are NOT per-allele effects.",
+                    style = "hint")
+    scale <- 1
+  }
+  scale
+}
+
 # Auto-switch convergence_method to "pip". Emits a hint explaining why.
 # Used at every site where the chosen method makes ELBO ill-defined or
 # unreliable. Returns "pip" so callers can do
